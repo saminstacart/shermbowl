@@ -1,26 +1,182 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #09090b;
+  --foreground: #e4e4e7;
+  --surface: #0f0f12;
+  --surface-raised: #15151b;
+  --surface-elevated: #1c1c23;
+  --border: #27272a;
+  --border-subtle: #1e1e24;
+  --text-muted: #71717a;
+  --accent: #22c55e;
+  --accent-dim: #166534;
+  --gold: #d4a853;
+  --gold-dim: #92722e;
+  --live-red: #ef4444;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-jakarta);
+  --font-mono: var(--font-jetbrains);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/* Subtle noise texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Safe area for iPhone notch/home indicator */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar but keep scrolling */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tabular nums for consistent number widths */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glass surface effect */
+.glass {
+  background: rgba(15, 15, 19, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Gold gradient text for title and payouts */
+.text-gradient {
+  background: linear-gradient(135deg, #22c55e 0%, #d4a853 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Thin scrollbar for modals */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #27272a transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #27272a;
+  border-radius: 2px;
+}
+
+/* Scoreboard-style monospace numbers */
+.score-display {
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+/* Card shadow for raised surfaces */
+.card-shadow {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Elevated shadow for modals and sticky bars */
+.elevated-shadow {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Category left-border colors */
+.cat-border-game { border-left: 2px solid #3b82f6; }
+.cat-border-player { border-left: 2px solid #22c55e; }
+.cat-border-fun { border-left: 2px solid #f59e0b; }
+.cat-border-degen { border-left: 2px solid #ef4444; }
+
+/* Selection glow */
+.glow-selected {
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3), 0 2px 8px rgba(34, 197, 94, 0.15);
+}
+
+/* Pulse ring animation for live indicators — red for sports authenticity */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+.pulse-ring {
+  animation: pulse-ring 1.5s infinite;
+}
+
+/* Category completion pulse */
+@keyframes cat-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.cat-pulse {
+  animation: cat-pulse 0.3s ease-in-out;
+}
+
+/* Correct pick celebration glow */
+@keyframes correct-glow {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.3); }
+  50% { box-shadow: 0 0 12px 4px rgba(34, 197, 94, 0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+.celebrate-correct {
+  animation: correct-glow 0.8s ease-out;
+}
+
+/* Score pop animation */
+@keyframes score-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.score-pop {
+  animation: score-pop 0.3s ease-out;
+}
+
+/* Rank slide animation */
+@keyframes rank-up {
+  0% { background-color: rgba(34, 197, 94, 0.1); }
+  100% { background-color: transparent; }
+}
+@keyframes rank-down {
+  0% { background-color: rgba(239, 68, 68, 0.08); }
+  100% { background-color: transparent; }
+}
+.rank-up { animation: rank-up 1.5s ease-out; }
+.rank-down { animation: rank-down 1.5s ease-out; }
