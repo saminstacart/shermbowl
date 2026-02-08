@@ -12,6 +12,7 @@ interface ProjectedEntry {
   projected_points: number;
   max_possible: number;
   initial_ceiling: number;
+  picks_count: number;
   rank: number;
   prev_rank: number | null;
   rank_change: number;
@@ -20,28 +21,45 @@ interface ProjectedEntry {
 export default function ProjectedLeaderboard({
   currentPlayerId,
   props,
+  isLocked,
 }: {
   currentPlayerId: string | null;
   props: Prop[];
+  isLocked: boolean;
 }) {
   const [entries, setEntries] = useState<ProjectedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"projected" | "confirmed">("projected");
 
+  const gameStarted = props.some(
+    (p) => p.status === "in_progress" || p.status === "resolved"
+  );
+
   const calculateProjected = useCallback(async () => {
     const { data: players } = await supabase
       .from("players")
-      .select("id, name, total_points, max_possible");
-    const { data: allPicks } = await supabase.from("picks").select("*");
+      .select("id, name, total_points, max_possible, picks_count");
 
-    if (!players || !allPicks) return;
+    // Only fetch all picks if locked (no leaking others' picks before lock)
+    const allPicks: Pick[] = [];
+    if (isLocked) {
+      const { data } = await supabase.from("picks").select("*");
+      if (data) allPicks.push(...(data as Pick[]));
+    } else if (currentPlayerId) {
+      // Before lock, only fetch YOUR picks
+      const { data } = await supabase
+        .from("picks")
+        .select("*")
+        .eq("player_id", currentPlayerId);
+      if (data) allPicks.push(...(data as Pick[]));
+    }
+
+    if (!players) return;
 
     const propMap = new Map(props.map((p) => [p.id, p]));
 
     const newEntries: ProjectedEntry[] = players.map((player) => {
-      const playerPicks = (allPicks as Pick[]).filter(
-        (p) => p.player_id === player.id
-      );
+      const playerPicks = allPicks.filter((p) => p.player_id === player.id);
 
       let confirmed = 0;
       let projected = 0;
@@ -96,19 +114,26 @@ export default function ProjectedLeaderboard({
         projected_points: projected,
         max_possible: maxPossible,
         initial_ceiling: initialCeiling,
+        picks_count: player.picks_count || 0,
         rank: 0,
         prev_rank: null,
         rank_change: 0,
       };
     });
 
-    const sortKey =
-      sortBy === "projected" ? "projected_points" : "confirmed_points";
-    newEntries.sort((a, b) => {
-      const diff = b[sortKey] - a[sortKey];
-      if (diff !== 0) return diff;
-      return b.max_possible - a.max_possible;
-    });
+    if (isLocked) {
+      // After lock: sort by projected/confirmed, tiebreak by max_possible
+      const sortKey =
+        sortBy === "projected" ? "projected_points" : "confirmed_points";
+      newEntries.sort((a, b) => {
+        const diff = b[sortKey] - a[sortKey];
+        if (diff !== 0) return diff;
+        return b.max_possible - a.max_possible;
+      });
+    } else {
+      // Before lock: alphabetical — no pick-derived ordering
+      newEntries.sort((a, b) => a.name.localeCompare(b.name));
+    }
 
     setEntries((prev) => {
       const prevRankMap = new Map(prev.map((p) => [p.player_id, p.rank]));
@@ -125,7 +150,7 @@ export default function ProjectedLeaderboard({
     });
 
     setLoading(false);
-  }, [props, sortBy]);
+  }, [props, sortBy, isLocked, currentPlayerId]);
 
   useEffect(() => {
     calculateProjected();
@@ -167,6 +192,67 @@ export default function ProjectedLeaderboard({
 
   const hasInProgress = props.some((p) => p.status === "in_progress");
 
+  // Pre-lock: only show player names + picks status
+  if (!isLocked) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 px-3 text-[11px] text-[#71717a] uppercase tracking-wider font-medium">
+          <div className="w-7" />
+          <div className="flex-1">Player</div>
+          <div className="w-16 text-right">Status</div>
+        </div>
+        {entries.map((entry) => {
+          const isCurrentPlayer = entry.player_id === currentPlayerId;
+          const totalProps = props.length;
+          const done = entry.picks_count >= totalProps;
+          return (
+            <div
+              key={entry.player_id}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${
+                isCurrentPlayer
+                  ? "border-green-500/20 bg-green-500/[0.04] border-l-2 border-l-green-500"
+                  : "border-transparent bg-transparent"
+              }`}
+            >
+              <div className="w-7" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`text-sm font-semibold truncate ${
+                      isCurrentPlayer ? "text-green-400" : "text-[#e4e4e7]"
+                    }`}
+                  >
+                    {entry.name}
+                  </span>
+                  {isCurrentPlayer && (
+                    <span className="text-[11px] text-green-500/60 uppercase font-bold tracking-wider">
+                      You
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="w-16 text-right">
+                {done ? (
+                  <span className="text-[11px] font-bold text-green-500 uppercase">Locked</span>
+                ) : entry.picks_count > 0 ? (
+                  <span className="text-[11px] font-medium text-amber-400">
+                    {entry.picks_count}/{totalProps}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-[#71717a]">Waiting</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <p className="text-[11px] text-[#71717a]/60 text-center mt-3 italic">
+          Leaderboard unlocks at kickoff
+        </p>
+      </div>
+    );
+  }
+
+  // Post-lock: full leaderboard
   return (
     <div className="space-y-2">
       {/* Sort toggle */}

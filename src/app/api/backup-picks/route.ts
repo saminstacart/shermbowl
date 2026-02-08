@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID || "17NcpJsQyTTZXxzOpse1mJhcGMi2tldP39WtQ9vxnQa4";
+const SHEET_ID = process.env.GOOGLE_SHEET_ID || "";
 
 // This endpoint dumps all picks to a format that can be pasted into Google Sheets
 // or consumed by an external backup service. Admin-only.

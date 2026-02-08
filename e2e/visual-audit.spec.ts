@@ -291,7 +291,7 @@ for (const vp of viewports) {
     });
 
     test("10. Admin page — overview", async ({ page }) => {
-      await page.goto(`${BASE}/admin?key=${process.env.ADMIN_SECRET ?? "shermbowl2026"}`);
+      await page.goto(`${BASE}/admin?key=${process.env.ADMIN_SECRET}`);
       await page.waitForTimeout(3000);
       await page.screenshot({
         path: `${SCREENSHOTS}/${vp.name}-10-admin-overview.png`,
@@ -308,7 +308,7 @@ for (const vp of viewports) {
     });
 
     test("11. Admin page — players section", async ({ page }) => {
-      await page.goto(`${BASE}/admin?key=${process.env.ADMIN_SECRET ?? "shermbowl2026"}`);
+      await page.goto(`${BASE}/admin?key=${process.env.ADMIN_SECRET}`);
       await page.waitForTimeout(2000);
       await page.locator("button:text-is('Players')").click();
       await page.waitForTimeout(1000);
@@ -319,7 +319,7 @@ for (const vp of viewports) {
     });
 
     test("12. Admin page — props section", async ({ page }) => {
-      await page.goto(`${BASE}/admin?key=${process.env.ADMIN_SECRET ?? "shermbowl2026"}`);
+      await page.goto(`${BASE}/admin?key=${process.env.ADMIN_SECRET}`);
       await page.waitForTimeout(2000);
       await page.locator("button:text-is('Props')").click();
       await page.waitForTimeout(1000);

@@ -295,7 +295,7 @@ test.describe("ShermBowl PropBets E2E", () => {
   });
 
   test("8. Admin page loads and shows curated props", async ({ page }) => {
-    await page.goto(`/admin?key=${process.env.ADMIN_SECRET ?? "shermbowl2026"}`);
+    await page.goto(`/admin?key=${process.env.ADMIN_SECRET}`);
     await page.waitForTimeout(3000);
 
     await expect(page.locator("text=ShermBowl Admin")).toBeVisible();
@@ -325,7 +325,7 @@ test.describe("ShermBowl PropBets E2E", () => {
   });
 
   test("9. Admin — add custom prop form exists", async ({ page }) => {
-    await page.goto(`/admin?key=${process.env.ADMIN_SECRET ?? "shermbowl2026"}`);
+    await page.goto(`/admin?key=${process.env.ADMIN_SECRET}`);
     await page.waitForTimeout(3000);
 
     // Navigate to Props tab where the form lives
@@ -427,7 +427,7 @@ test.describe("ShermBowl PropBets E2E", () => {
   });
 
   test("14. API — mock-game endpoint lists steps", async ({ request }) => {
-    const res = await request.get(`/api/mock-game?key=${process.env.ADMIN_SECRET ?? "shermbowl2026"}`);
+    const res = await request.get(`/api/mock-game?key=${process.env.ADMIN_SECRET}`);
     expect(res.ok()).toBeTruthy();
     const data = await res.json();
     expect(data.steps).toBeDefined();

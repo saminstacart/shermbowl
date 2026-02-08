@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
+import { triggerSheetSync } from "@/lib/sheets";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +166,11 @@ export async function POST(req: NextRequest) {
     } catch (countErr) {
       console.error("[POST /api/picks] Error updating picks count:", countErr);
     }
+
+    // Fire-and-forget sheet sync
+    triggerSheetSync(supabase).catch((e) =>
+      console.error("[POST /api/picks] Sheet sync failed:", e)
+    );
 
     return NextResponse.json({ success: true });
   } catch (err) {

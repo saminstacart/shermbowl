@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import { fetchGameData } from "@/lib/espn";
 import { resolveProps, getCurrentStatValue } from "@/lib/resolver";
+import { triggerSheetSync } from "@/lib/sheets";
 
 export const dynamic = "force-dynamic";
 import { oddsToPoints } from "@/lib/types";
@@ -104,6 +105,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Fire-and-forget sheet sync
+    triggerSheetSync(supabase).catch((e) =>
+      console.error("[POST /api/poll-game] Sheet sync failed:", e)
+    );
+
     return NextResponse.json({
       gameStatus: gameData.status,
       score: `${gameData.awayScore}-${gameData.homeScore}`,
@@ -204,6 +210,11 @@ export async function GET(req: NextRequest) {
         console.error("[GET /api/poll-game] Score recalculation failed:", scoreErr);
       }
     }
+
+    // Fire-and-forget sheet sync
+    triggerSheetSync(supabase).catch((e) =>
+      console.error("[GET /api/poll-game] Sheet sync failed:", e)
+    );
 
     return NextResponse.json({
       gameStatus: gameData.status,

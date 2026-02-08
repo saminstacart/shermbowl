@@ -77,11 +77,43 @@ function AdminPage() {
     setLoading(false);
   }, []);
 
+  // Last refresh timestamp
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+
   useEffect(() => {
-    if (adminKey === process.env.NEXT_PUBLIC_ADMIN_SECRET) {
-      setAuthorized(true);
-      fetchAll();
-    }
+    if (adminKey !== process.env.NEXT_PUBLIC_ADMIN_SECRET) return;
+    setAuthorized(true);
+    fetchAll().then(() => setLastRefresh(new Date()));
+
+    // Realtime subscriptions — auto-refresh on any data change
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchAll().then(() => setLastRefresh(new Date()));
+      }, 1000);
+    };
+
+    import("@/lib/supabase").then(({ supabase }) => {
+      const channel = supabase
+        .channel("admin_realtime")
+        .on("postgres_changes", { event: "*", schema: "public", table: "players" }, debouncedRefresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "picks" }, debouncedRefresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "props" }, debouncedRefresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "game_state" }, debouncedRefresh)
+        .subscribe();
+
+      // Store cleanup ref
+      (window as unknown as Record<string, unknown>).__adminChannel = channel;
+    });
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      import("@/lib/supabase").then(({ supabase }) => {
+        const ch = (window as unknown as Record<string, unknown>).__adminChannel;
+        if (ch) supabase.removeChannel(ch as ReturnType<typeof supabase.channel>);
+      });
+    };
   }, [adminKey, fetchAll]);
 
   const handleSeedCurated = async () => {
@@ -493,7 +525,15 @@ function AdminPage() {
       {/* Header */}
       <div className="border-b border-[#27272a] bg-[#0f0f13]">
         <div className="max-w-5xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-white">ShermBowl Admin</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-white">ShermBowl Admin</h1>
+            {lastRefresh && (
+              <span className="text-[11px] text-[#71717a] font-mono">
+                Live <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse ml-1 mr-1" />
+                {lastRefresh.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
           <div className="flex gap-1 mt-3 overflow-x-auto">
             {sections.map((s) => (
               <button
@@ -1125,7 +1165,7 @@ function AdminPage() {
             <div className="border border-[#27272a] rounded-xl p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#e4e4e7]">Google Sheet Backup</h3>
               <a
-                href={`https://docs.google.com/spreadsheets/d/${process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID || "17NcpJsQyTTZXxzOpse1mJhcGMi2tldP39WtQ9vxnQa4"}/edit`}
+                href={`https://docs.google.com/spreadsheets/d/${process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID}/edit`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-green-500 hover:text-green-400 underline"

@@ -209,7 +209,7 @@ export default function LivePage() {
                   {resolvedProps.length}/{props.length} resolved
                 </span>
               </div>
-              <ProjectedLeaderboard currentPlayerId={playerId} props={props} />
+              <ProjectedLeaderboard currentPlayerId={playerId} props={props} isLocked={isLocked} />
             </div>
           )}
 

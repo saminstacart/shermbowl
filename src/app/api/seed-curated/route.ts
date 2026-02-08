@@ -421,12 +421,28 @@ async function doSeed(supabase: ReturnType<typeof createAdminClient>) {
 }
 
 export async function POST(req: NextRequest) {
-  const { key } = await req.json().catch(() => ({ key: "" }));
+  const { key, force } = await req.json().catch(() => ({ key: "", force: false }));
   if (key !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = createAdminClient();
+
+  // Safety: refuse to re-seed if picks exist (would destroy player data)
+  const { count: picksCount } = await supabase
+    .from("picks")
+    .select("*", { count: "exact", head: true });
+
+  if (picksCount && picksCount > 0 && !force) {
+    return NextResponse.json(
+      {
+        error: `BLOCKED: ${picksCount} picks exist in the database. Re-seeding would delete all of them. Pass {"force": true} to override (DESTRUCTIVE).`,
+        picks_count: picksCount,
+      },
+      { status: 409 }
+    );
+  }
+
   const { data, error, warnings } = await doSeed(supabase);
 
   if (error) {
